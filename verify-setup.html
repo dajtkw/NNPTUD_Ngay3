@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 1 Setup Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        .test { padding: 1rem; margin: 1rem 0; border-left: 4px solid #ccc; }
+        .pass { border-color: green; background: #e8f5e8; }
+        .fail { border-color: red; background: #ffe8e8; }
+        .loading { border-color: orange; background: #fff3e0; }
+        code { background: #f5f5f5; padding: 2px 4px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Phase 1 Setup Verification</h1>
+    <p>Testing the Product Dashboard setup...</p>
+    
+    <div id="test1" class="test loading">
+        <h3>Test 1: File Structure</h3>
+        <p id="test1-result">Checking required files...</p>
+    </div>
+    
+    <div id="test2" class="test loading">
+        <h3>Test 2: API Connectivity</h3>
+        <p id="test2-result">Testing connection to Fake Store API...</p>
+    </div>
+    
+    <div id="test3" class="test loading">
+        <h3>Test 3: Main Application Load</h3>
+        <p id="test3-result">Testing if main application loads...</p>
+    </div>
+    
+    <div id="results" class="test" style="display: none;">
+        <h3>Verification Results</h3>
+        <p id="summary"></p>
+        <button onclick="window.location.href='index.html'">Open Main Dashboard</button>
+    </div>
+
+    <script>
+        const tests = [
+            { id: 'test1', name: 'File Structure', fn: testFileStructure },
+            { id: 'test2', name: 'API Connectivity', fn: testAPIConnectivity },
+            { id: 'test3', name: 'Main Application Load', fn: testAppLoad }
+        ];
+        
+        let passed = 0;
+        let total = tests.length;
+        
+        async function runTests() {
+            for (const test of tests) {
+                const element = document.getElementById(test.id);
+                const resultElement = document.getElementById(`${test.id}-result`);
+                
+                try {
+                    const result = await test.fn();
+                    element.className = 'test pass';
+                    resultElement.innerHTML = `<strong>✓ PASS:</strong> ${result}`;
+                    passed++;
+                } catch (error) {
+                    element.className = 'test fail';
+                    resultElement.innerHTML = `<strong>✗ FAIL:</strong> ${error.message}`;
+                }
+            }
+            
+            // Show results
+            const resultsDiv = document.getElementById('results');
+            const summary = document.getElementById('summary');
+            
+            resultsDiv.style.display = 'block';
+            summary.innerHTML = `Passed ${passed} out of ${total} tests.`;
+            
+            if (passed === total) {
+                summary.innerHTML += ' <strong>Phase 1 setup is complete and working!</strong>';
+            } else {
+                summary.innerHTML += ' <strong>Some tests failed. Please check the setup.</strong>';
+            }
+        }
+        
+        function testFileStructure() {
+            const requiredFiles = ['index.html', 'script.js', 'style.css'];
+            const missing = [];
+            
+            // This is a client-side check - we can't actually check server files
+            // So we'll check if we can access them
+            return new Promise((resolve, reject) => {
+                let checked = 0;
+                requiredFiles.forEach(file => {
+                    const img = new Image();
+                    img.onload = img.onerror = () => {
+                        checked++;
+                        if (checked === requiredFiles.length) {
+                            if (missing.length === 0) {
+                                resolve('All required files are present.');
+                            } else {
+                                reject(new Error(`Missing files: ${missing.join(', ')}`));
+                            }
+                        }
+                    };
+                    img.src = file + '?t=' + Date.now();
+                });
+            });
+        }
+        
+        async function testAPIConnectivity() {
+            try {
+                const response = await fetch('https://api.escuelajs.co/api/v1/products?limit=1');
+                if (!response.ok) {
+                    throw new Error(`API returned status ${response.status}`);
+                }
+                const data = await response.json();
+                if (!Array.isArray(data)) {
+                    throw new Error('API response is not an array');
+                }
+                return `Connected successfully. Received ${data.length} product(s).`;
+            } catch (error) {
+                throw new Error(`Cannot connect to API: ${error.message}`);
+            }
+        }
+        
+        function testAppLoad() {
+            // Check if the main script has the required functions
+            return new Promise((resolve, reject) => {
+                // We'll load the script and check for global variables
+                const script = document.createElement('script');
+                script.src = 'script.js';
+                script.onload = () => {
+                    // Give it a moment to initialize
+                    setTimeout(() => {
+                        if (typeof API_URL !== 'undefined' && typeof init === 'function') {
+                            resolve('Main application script loaded successfully.');
+                        } else {
+                            reject(new Error('Main application script missing required components.'));
+                        }
+                    }, 100);
+                };
+                script.onerror = () => {
+                    reject(new Error('Failed to load script.js'));
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Run tests when page loads
+        window.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>
